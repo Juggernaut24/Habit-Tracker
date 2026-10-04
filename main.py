@@ -23,6 +23,7 @@ def main_cli():
             input("Choose from menu: ")
 
         except KeyboardInterrupt:
+            clear_terminal()
             print("\nCtrl + C pressed. Exiting program...")
             sys.exit(0)
 
