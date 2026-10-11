@@ -5,13 +5,19 @@ import sqlite3
 class Database:
     def __init__(self, db_path: str | Path = "habits.db") -> None:
         self.db_path = str(db_path)
-        self.init.db()
+        self.init_db()
 
     def _get_connection(self) ->sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON;")
         conn.row_factory = sqlite3.Row
         return conn
+
+    def _get_logical_today(self) -> datetime.date:
+        """Return the current date, rolling over at 3 AM instead of midnight."""
+        now = datetime.datetime.now()
+        logical_time = now - datetime.timedelta(hours=1)
+        return logical_time.date()
 
     def init_db(self) -> None:
         """ Creates tables and indexes fi they do not already exist. """
@@ -25,6 +31,7 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT UNIQUE NOT NULL,
                     category TEXT DEFAULT 'General',
+                    frequency TEXT DEFAULT 'daily',
                     created_at TEXT NOT NULL,
                     is_active INTEGER DEFAULT 1
                 )
@@ -55,17 +62,20 @@ class Database:
             )
             conn.commit()
 
-    def add_habit(self, name: str, category: str = "General") -> bool:
-        today = datetime.date.today().isoformat()
+    def add_habit(self, name: str, category: str = "General", frequency: str = "daily") -> bool:
+        """
+        (name, category, frequency, created_at)
+        """
+        today = self._get_logical_today().isoformat()
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    INSERT INTO habits (name, category, created_at)
-                    VALUES (?, ?, ?)
+                    INSERT INTO habits (name, category, frequency, created_at)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (name.strip(), category.strip)
+                    (name.strip(), category.strip(), frequency.strip(), today)
                 )
                 conn.commit()
                 return True
@@ -74,7 +84,7 @@ class Database:
 
     def mark_completed(self, habit_id: int, target_date: datetime.date | None = None) -> bool:
         if target_date is None:
-            target_date = datetime.date.today()
+            target_date = self._get_logical_today()
 
         date_str = target_date.isoformat()
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -103,3 +113,9 @@ class Database:
                 "ORDER BY id ASC"
             )
             return cursor.fetchall()
+
+if __name__ == "__main__":
+    print("TEST")
+    # (name, category, frequency, created_at)
+    db = Database()
+    db.add_habit("walk", "health", "daily")
