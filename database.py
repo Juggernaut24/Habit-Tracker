@@ -30,8 +30,10 @@ class Database:
                 CREATE TABLE IF NOT EXISTS habits (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT UNIQUE NOT NULL,
+                    description TEXT DEFAULT NULL,
                     category TEXT DEFAULT 'General',
                     frequency TEXT DEFAULT 'daily',
+                    time_of_day TEXT DEFAULT 'any',
                     created_at TEXT NOT NULL,
                     is_active INTEGER DEFAULT 1
                 )
@@ -62,25 +64,42 @@ class Database:
             )
             conn.commit()
 
-    def add_habit(self, name: str, category: str = "General", frequency: str = "daily") -> bool:
-        """
-        (name, category, frequency, created_at)
-        """
+    def add_habit(
+            self,
+            name: str,
+            description: str = "",
+            category: str = "",
+            frequency: str = "",
+            time_of_day: str = ""
+        ) -> bool:
+
         today = self._get_logical_today().isoformat()
+
+        description = description.strip()
+        category = category.strip() or "General"
+        frequency = frequency.strip() or "daily"
+        time_of_day = time_of_day.strip() or "any"
+
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    INSERT INTO habits (name, category, frequency, created_at)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO habits (name, description, category, frequency, time_of_day, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
-                    (name.strip(), category.strip(), frequency.strip(), today)
+                    (name.strip(), description, category, frequency, time_of_day, today)
                 )
                 conn.commit()
                 return True
         except sqlite3.IntegrityError:
             return False
+
+    def remove_habit():...
+
+    def update_habit():...
+
+    
 
     def mark_completed(self, habit_id: int, target_date: datetime.date | None = None) -> bool:
         if target_date is None:
@@ -115,7 +134,8 @@ class Database:
             return cursor.fetchall()
 
 if __name__ == "__main__":
-    print("TEST")
-    # (name, category, frequency, created_at)
+    # (name, description, category, frequency, time_of_day, created_at)
     db = Database()
-    db.add_habit("walk", "health", "daily")
+    db.add_habit("run", "test", "health", "weekly", "morning")
+    print("Habit added")
+

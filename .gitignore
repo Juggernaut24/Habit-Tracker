@@ -1,5 +1,6 @@
 # ignore
-.db
+*.db
+todo.txt
 
 # Python
 __pycache__/
